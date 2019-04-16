@@ -1,6 +1,8 @@
 """
 BME280 constants
 
+Enums would be nice for most of these, but are not implemented in micropython.
+
 This file includes all constants and default configs of the sensor (e.g. pins, registers).
 It is largely a transcription of the information in the data sheet:
 https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280-DS002.pdf
@@ -43,18 +45,57 @@ REG_CALIB00_25 = (0x88, 26)  # read 26 bytes until register 0xA1 - read only
 """
 Oversampling rates
 """
-OSRS_1 = 1
-OSRS_2 = 2
-OSRS_4 = 3
-OSRS_8 = 4
-OSRS_16 = 5
+OS_T_1 = 0x20
+OS_T_2 = 0x40
+OS_T_4 = 0x60
+OS_T_8 = 0x80
+OS_T_16 = 0xA0
+
+OS_P_1 = 0x04
+OS_P_2 = 0x08
+OS_P_4 = 0x0C
+OS_P_8 = 0x10
+OS_P_16 = 0x14
+
+OS_H_1 = 0x01
+OS_H_2 = 0x02
+OS_H_4 = 0x03
+OS_H_8 = 0x04
+OS_H_16 = 0x05
 
 """
-modes
+Modes
 """
-MODE_SLEEP = 0
-MODE_FORCE = 1
-MODE_NORMAL = 3
+MODE_SLEEP = 0x00
+MODE_FORCE = 0x01
+MODE_NORMAL = 0x03
+
+"""
+Time stand-by [ms]
+"""
+TSB_0_5 = 0x00
+TSB_62_5 = 0x20
+TSB_125 = 0x40
+TSB_250 = 0x60
+TSB_500 = 0x80
+TSB_1000 = 0xA0
+TSB_10 = 0xC0
+TSB_20 = 0xE0
+
+"""
+Filter settings
+"""
+FILTER_OFF = 0x00
+FILTER_2 = 0x04
+FILTER_4 = 0x08
+FILTER_8 = 0x0C
+FILTER_16 = 0x10
+
+"""
+SPI 3-wire interface
+"""
+SPI3W_ON = 0x01
+SPI3W_OFF = 0x00
 
 """
 Additional constants
