@@ -188,3 +188,15 @@ class bme280_instance:
         if value == constants.SPI3W_OFF:
             return 'off', value
 
+    def is_measuring(self):
+        value = self._get_value(constants.REG_STATUS, 0x08)
+        if value == 0x08:
+            return True
+        return False
+
+    def is_im_update(self):
+        value = self._get_value(constants.REG_STATUS, 0x01)
+        if value == 0x01:
+            return True
+        return False
+
