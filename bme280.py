@@ -17,14 +17,6 @@ class bme280_instance:
     def __init__(self, i2c_connection=None, bme_address=None):
         self.i2c = i2c_connection if i2c_connection else self._init_i2c()
         self.bme_i2c_addr = bme_address if bme_address else constants.BME_I2C_ADDR
-        self.mode = 'normal'
-        self.time_sb = 500
-        self.oversampling_t = 'x1'
-        self.oversampling_p = 'x1'
-        self.oversampling_h = 'x1'
-        self.filter = 'off'
-        self._config = 0x80  # config byte, default value
-        self._ctrl_meas = 0x27  # control measure byte (os_t, os_p, mode), default value
         self._calibration_t = None  # init with empty tuple!?
         self._calibration_p = None
         self._calibration_h = None
@@ -69,18 +61,20 @@ class bme280_instance:
     def set_temp_oversampling(self, rate):
         if rate not in ['x1', 'x2', 'x4', 'x8', 'x16']:
             raise TypeError("'rate' has to be one of ['x1', 'x2', 'x4', 'x8', 'x16']")
+        ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
+        ctrl_byte = unpack('<b', ctrl_byte)[0]
         bit_mask = 0x1F
         if rate == 'x1':
-            self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.OS_T_1
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_T_1
         if rate == 'x2':
-            self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.OS_T_2
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_T_2
         if rate == 'x4':
-            self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.OS_T_4
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_T_4
         if rate == 'x8':
-            self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.OS_T_8
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_T_8
         if rate == 'x16':
-            self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.OS_T_16
-        self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([self._ctrl_meas]))
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_T_16
+        self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([ctrl_byte]))
 
     def get_temp_oversampling(self):
         ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
@@ -102,18 +96,20 @@ class bme280_instance:
     def set_press_oversampling(self, rate):
         if rate not in ['x1', 'x2', 'x4', 'x8', 'x16']:
             raise TypeError("'rate' has to be one of ['x1', 'x2', 'x4', 'x8', 'x16']")
+        ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
+        ctrl_byte = unpack('<b', ctrl_byte)[0]
         bit_mask = 0xE3
         if rate == 'x1':
-            self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.OS_P_1
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_P_1
         if rate == 'x2':
-            self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.OS_P_2
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_P_2
         if rate == 'x4':
-            self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.OS_P_4
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_P_4
         if rate == 'x8':
-            self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.OS_P_8
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_P_8
         if rate == 'x16':
-            self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.OS_P_16
-        self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([self._ctrl_meas]))
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_P_16
+        self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([ctrl_byte]))
 
     def get_press_oversampling(self):
         ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
@@ -135,20 +131,24 @@ class bme280_instance:
     def set_hum_oversampling(self, rate):
         if rate not in ['x1', 'x2', 'x4', 'x8', 'x16']:
             raise TypeError("'rate' has to be one of ['x1', 'x2', 'x4', 'x8', 'x16']")
+        ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_HUM, 1)
+        ctrl_byte = unpack('<b', ctrl_byte)[0]
         bit_mask = 0xF8
         if rate == 'x1':
-            self._ctrl_hum = (self._ctrl_hum & bit_mask) | constants.OS_H_1
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_H_1
         if rate == 'x2':
-            self._ctrl_hum = (self._ctrl_hum & bit_mask) | constants.OS_H_2
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_H_2
         if rate == 'x4':
-            self._ctrl_hum = (self._ctrl_hum & bit_mask) | constants.OS_H_4
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_H_4
         if rate == 'x8':
-            self._ctrl_hum = (self._ctrl_hum & bit_mask) | constants.OS_H_8
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_H_8
         if rate == 'x16':
-            self._ctrl_hum = (self._ctrl_hum & bit_mask) | constants.OS_H_16
-        self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_HUM, bytearray([self._ctrl_hum]))
+            ctrl_byte = (ctrl_byte & bit_mask) | constants.OS_H_16
+        self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_HUM, bytearray([ctrl_byte]))
         # it is necessary to write to ctrl_meas for the changes in ctrl_hum to take place
-        self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([self._ctrl_meas]))
+        ctrl_meas = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
+        ctrl_meas = unpack('<b', ctrl_byte)[0]
+        self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([ctrl_meas]))
 
     def get_hum_oversampling(self):
         ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_HUM, 1)
