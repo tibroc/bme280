@@ -31,6 +31,7 @@ class bme280_instance:
         self._start_up()
 
     def _start_up(self):
+        print("Initializing sensor.")
         self.check_sensor()
         print("Sensor found.")
         self.reset_sensor()
@@ -80,6 +81,23 @@ class bme280_instance:
         if rate == 'x16':
             self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.OS_T_16
         self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([self._ctrl_meas]))
+
+    def get_temp_oversampling(self):
+        ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
+        ctrl_byte = unpack('<b', ctrl_byte)[0]
+        bit_mask = 0xE0
+        value = ctrl_byte & bit_mask
+        if value == constants.OS_T_1:
+            return 'x1'
+        if value == constants.OS_T_2:
+            return 'x2'
+        if value == constants.OS_T_4:
+            return 'x4'
+        if value == constants.OS_T_8:
+            return 'x8'
+        if value in [constants.OS_T_16, 0xE0, 0xC0]:
+            return 'x16'
+        raise RuntimeError("Something went wrong. Did you configure the sensor?")
         
     def set_press_oversampling(self, rate):
         if rate not in ['x1', 'x2', 'x4', 'x8', 'x16']:
@@ -96,6 +114,23 @@ class bme280_instance:
         if rate == 'x16':
             self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.OS_P_16
         self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([self._ctrl_meas]))
+
+    def get_press_oversampling(self):
+        ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
+        ctrl_byte = unpack('<b', ctrl_byte)[0]
+        bit_mask = 0x1C
+        value = ctrl_byte & bit_mask
+        if value == constants.OS_P_1:
+            return 'x1'
+        if value == constants.OS_P_2:
+            return 'x2'
+        if value == constants.OS_P_4:
+            return 'x4'
+        if value == constants.OS_P_8:
+            return 'x8'
+        if value in [constants.OS_P_16, 0x1C, 0x18]:
+            return 'x16'
+        raise RuntimeError("Something went wrong. Did you configure the sensor?")
 
     def set_hum_oversampling(self, rate):
         if rate not in ['x1', 'x2', 'x4', 'x8', 'x16']:
@@ -115,6 +150,23 @@ class bme280_instance:
         # it is necessary to write to ctrl_meas for the changes in ctrl_hum to take place
         self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([self._ctrl_meas]))
 
+    def get_hum_oversampling(self):
+        ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_HUM, 1)
+        ctrl_byte = unpack('<b', ctrl_byte)[0]
+        bit_mask = 0x07
+        value = ctrl_byte & bit_mask
+        if value == constants.OS_H_1:
+            return 'x1'
+        if value == constants.OS_H_2:
+            return 'x2'
+        if value == constants.OS_H_4:
+            return 'x4'
+        if value == constants.OS_H_8:
+            return 'x8'
+        if value in [constants.OS_H_16, 0x07, 0x06]:
+            return 'x16'
+        raise RuntimeError("Something went wrong. Did you configure the sensor?")
+
     def set_mode(self, mode):
         if mode not in ['sleep', 'force', 'normal']:
             raise TypeError("'mode' has to be one of ['sleep', 'force', 'normal']")
@@ -127,5 +179,16 @@ class bme280_instance:
             self._ctrl_meas = (self._ctrl_meas & bit_mask) | constants.MODE_NORMAL
         self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([self._ctrl_meas]))
 
-
+    def get_mode(self):
+        ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
+        ctrl_byte = unpack('<b', ctrl_byte)[0]
+        bit_mask = 0x03
+        value = ctrl_byte & bit_mask
+        if value == constants.MODE_SLEEP:
+            return 'sleep'
+        if value == constants.MODE_FORCE:
+            return 'force'
+        if value == constants.MODE_NORMAL:
+            return 'normal'
+        raise RuntimeError("Something went wrong. Did you configure the sensor?")
 
