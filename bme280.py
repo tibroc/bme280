@@ -116,7 +116,7 @@ class bme280_instance:
         self._set_value(rate, constants.REG_CTRL_HUM, 0xF8)
         # it is necessary to do a write operation to ctrl_meas for the changes in ctrl_hum to take place
         ctrl_meas = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
-        ctrl_meas = unpack('<b', ctrl_byte)[0]
+        ctrl_meas = unpack('<b', ctrl_meas)[0]
         self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([ctrl_meas]))
 
     def get_hum_oversampling(self):
@@ -193,12 +193,14 @@ class bme280_instance:
         if value == constants.SPI3W_OFF:
             return 'off', value
 
+    @property
     def is_measuring(self):
         value = self._get_value(constants.REG_STATUS, 0x08)
         if value == 0x08:
             return True
         return False
 
+    @property
     def is_im_update(self):
         value = self._get_value(constants.REG_STATUS, 0x01)
         if value == 0x01:
@@ -258,11 +260,23 @@ class bme280_instance:
         self._compensate_temperature()
         self._compensate_pressure()
         self._compensate_humidity()
+    
+    def _auto_config(self):
+        self.set_hum_oversampling(constants.OS_H_1)
+        self.set_temp_oversampling(constants.OS_T_1)
+        self.set_press_oversampling(constants.OS_P_1)
+        self.set_filter(constants.FILTER_OFF)
+        self.set_mode(constants.MODE_FORCE)
+        # wait for it...
+        while self.is_measuring:
+            time.sleep_ms(10)
 
+    @property
     def get_values(self):
+        self._auto_config()
         self.read_data()
         self.compensate_data()
-        return {'temperature': self.temperature, 
-                'pressure': self.pressure, 
-                'humidity': self.humidity}
+        return {'temperature_degc': self.temperature / 100, 
+                'pressure_hpa': self.pressure / 100, 
+                'relative_humidity': self.humidity}
 
