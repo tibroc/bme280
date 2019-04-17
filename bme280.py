@@ -17,9 +17,17 @@ class bme280_instance:
     def __init__(self, i2c_connection=None, bme_address=None):
         self.i2c = i2c_connection if i2c_connection else self._init_i2c()
         self.bme_i2c_addr = bme_address if bme_address else constants.BME_I2C_ADDR
+        self.adc_pressure = None
+        self.adc_temperature = None
+        self.adc_humidity = None
+        self.pressure = None
+        self.temperature = None
+        self.humidity = None
         self._calibration_t = None  # init with empty tuple!?
         self._calibration_p = None
         self._calibration_h = None
+        self._t_fine = None
+        self._raw_data_buffer = bytearray(8)
         self._start_up()
 
     def _start_up(self):
@@ -85,8 +93,7 @@ class bme280_instance:
             return 'x8', value
         if value in [constants.OS_T_16, 0xE0, 0xC0]:
             return 'x16', value
-        else
-            return 'reset state', value
+        return 'reset state', value
         
     def set_press_oversampling(self, rate):
         self._set_value(rate, constants.REG_CTRL_MEAS, 0xE3)
@@ -103,8 +110,7 @@ class bme280_instance:
             return 'x8', value
         if value in [constants.OS_P_16, 0x1C, 0x18]:
             return 'x16', value
-        else
-            return 'reset state', value
+        return 'reset state', value
 
     def set_hum_oversampling(self, rate):
         self._set_value(rate, constants.REG_CTRL_HUM, 0xF8)
@@ -125,8 +131,7 @@ class bme280_instance:
             return 'x8', value
         if value in [constants.OS_H_16, 0x07, 0x06]:
             return 'x16', value
-        else
-            return 'reset state', value
+        return 'reset state', value
 
     def set_mode(self, mode):
         self._set_value(mode, constants.REG_CTRL_MEAS, 0xFC)
@@ -199,4 +204,65 @@ class bme280_instance:
         if value == 0x01:
             return True
         return False
+
+    def read_data(self):
+        # single burst read-out from sensor:
+        self.i2c.readfrom_mem_into(self.bme_i2c_addr, 0xF7, self._raw_data_buffer)
+        # unpack data - pressure + temperature are unsigned 20-bit and humidity is unsigned 16-bit)
+        # pressure(0xF7): ((msb << 16) | (lsb << 8) | xlsb) >> 4
+        self.adc_pressure = ((self._raw_data_buffer[0] << 16) | (self._raw_data_buffer[1] << 8) | self._raw_data_buffer[2]) >> 4
+        # temperature(0xFA): ((msb << 16) | (lsb << 8) | xlsb) >> 4
+        self.adc_temperature = ((self._raw_data_buffer[3] << 16) | (self._raw_data_buffer[4] << 8) | self._raw_data_buffer[5]) >> 4
+        # humidity(0xFD): (msb << 8) | lsb
+        self.adc_humidity = (self._raw_data_buffer[6] << 8) | self._raw_data_buffer[7]
+
+    def _compensate_temperature(self):
+        var1 = ((self.adc_temperature >> 3) - (self._calibration_t[0] << 1)) * (self._calibration_t[1] >> 11)
+        var2 = (((((self.adc_temperature >> 4) - self._calibration_t[0]) *
+                  ((self.adc_temperature >> 4) - self._calibration_t[0])) >> 12) * self._calibration_t[2]) >> 14
+        self._t_fine = var1 + var2
+        self.temperature = (self._t_fine * 5 + 128) >> 8
+
+    def _compensate_pressure(self):
+        var1 = self._t_fine - 128000
+        var2 = var1 * var1 * self._calibration_p[5]
+        var2 = var2 + ((var1 * self._calibration_p[4]) << 17)
+        var2 = var2 + (self._calibration_p[3] << 35)
+        var1 = (((var1 * var1 * self._calibration_p[2]) >> 8) +
+                ((var1 * self._calibration_p[1]) << 12))
+        var1 = (((1 << 47) + var1) * self._calibration_p[0]) >> 33
+        if var1 == 0:
+            self.pressure = 0  # avoid exception caused by division by zero
+        else:
+            p = 1048576 - self.adc_pressure
+            p = (((p << 31) - var2) * 3125) // var1
+            var1 = (self._calibration_p[8] * (p >> 13) * (p >> 13)) >> 25
+            var2 = (self._calibration_p[7] * p) >> 19
+            # only difference from data sheet is the division by 256 to get pascal
+            self.pressure = ((p + var1 + var2) >> 8) + (self._calibration_p[6] << 4) / 256
+
+    def _compensate_humidity(self):
+        h = self._t_fine - 76800
+        h = (((((self.adc_humidity << 14) - (self._calibration_h[3] << 20) -
+                (self._calibration_h[4] * h)) + 16384) >> 15) *
+             (((((((h * self._calibration_h[5]) >> 10) *
+                (((h * self._calibration_h[2]) >> 11) + 32768)) >> 10) + 2097152) *
+              self._calibration_h[1] + 8192) >> 14))
+        h = h - (((((h >> 15) * (h >> 15)) >> 7) * self._calibration_h[0]) >> 4)
+        h = 0 if h < 0 else h
+        h = 419430400 if h > 419430400 else h
+        # only difference from data sheet is division by 1024 to get relative humidity
+        self.humidity = (h >> 12) / 1024
+
+    def compensate_data(self):
+        self._compensate_temperature()
+        self._compensate_pressure()
+        self._compensate_humidity()
+
+    def get_values(self):
+        self.read_data()
+        self.compensate_data()
+        return {'temperature': self.temperature, 
+                'pressure': self.pressure, 
+                'humidity': self.humidity}
 
