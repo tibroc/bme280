@@ -47,7 +47,7 @@ class bme280_instance:
         if self.bme_i2c_addr not in all_ics:
             raise OSError("Sensor not found at the provided address.")
         # check sensor id:
-        chip = self.i2c.readfrom_mem(constants.BME_I2C_ADDR, constants.REG_ID, 2)
+        chip = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_ID, 2)
         chip_id = unpack("<h", chip)[0]
         if chip_id != 0x60:
             raise OSError("The i2c device does not return the correct chip id: {}".format(chip_id))
