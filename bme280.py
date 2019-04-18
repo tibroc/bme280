@@ -4,6 +4,7 @@ the sensor and read-out the data.
 
 Sources that served as guidance during implementation:
 * https://github.com/robert-hh/BME280 (MIT License)
+* https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280-DS002.pdf
 
 """
 import machine
