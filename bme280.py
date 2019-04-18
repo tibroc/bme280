@@ -43,9 +43,6 @@ class bme280_instance:
         self.i2c = machine.I2C(scl=constants.SCL, sda=constants.SDA, freq=100000)
 
     def check_sensor(self):
-        all_ics = self.i2c.scan()
-        if self.bme_i2c_addr not in all_ics:
-            raise OSError("Sensor not found at the provided address.")
         # check sensor id:
         chip = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_ID, 2)
         chip_id = unpack("<h", chip)[0]
