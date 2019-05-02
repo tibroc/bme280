@@ -49,6 +49,7 @@ class bme280_instance:
         chip_id = unpack("<h", chip)[0]
         if chip_id != 0x60:
             raise OSError("The i2c device does not return the correct chip id: {}".format(chip_id))
+        print("Found a BME280 at {}.".format(self.bme_i2c_addr))
 
     def reset_sensor(self):
         self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_RESET, bytearray([0xB6]))
@@ -217,9 +218,9 @@ class bme280_instance:
         self.adc_humidity = (self._raw_data_buffer[6] << 8) | self._raw_data_buffer[7]
 
     def _compensate_temperature(self):
-        var1 = ((self.adc_temperature >> 3) - (self._calibration_t[0] << 1)) * (self._calibration_t[1] >> 11)
-        var2 = (((((self.adc_temperature >> 4) - self._calibration_t[0]) *
-                  ((self.adc_temperature >> 4) - self._calibration_t[0])) >> 12) * self._calibration_t[2]) >> 14
+        var1 = (((self.adc_temperature >> 3) - (self._calibration_t[0] << 1)) * self._calibration_t[1]) >> 11
+        var2 = ((((((self.adc_temperature >> 4) - self._calibration_t[0]) *
+                   ((self.adc_temperature >> 4) - self._calibration_t[0]))) >> 12) * self._calibration_t[2]) >> 14
         self._t_fine = var1 + var2
         self.temperature = (self._t_fine * 5 + 128) >> 8
 
