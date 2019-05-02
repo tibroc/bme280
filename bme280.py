@@ -9,6 +9,7 @@ Sources that served as guidance during implementation:
 """
 import machine
 from ustruct import unpack
+import utime
 
 import constants
 
@@ -37,6 +38,9 @@ class bme280_instance:
         print("Sensor found.")
         self.reset_sensor()
         print("Initiated soft-reset.")
+        utime.sleep_ms(100)
+        self._auto_config()
+        print("Set auto-config.")
         self._read_calibration_data()
         print("Read calibration data.")
     
@@ -241,7 +245,7 @@ class bme280_instance:
             var2 = (self._calibration_p[7] * p) >> 19
             # only difference from data sheet is the division by 256 to get pascal
             pressure = ((p + var1 + var2) >> 8) + (self._calibration_p[6] << 4)
-            self.pressure = pressure / 256
+            self.pressure = pressure / 256  
 
     def _compensate_humidity(self):
         h = self._t_fine - 76800
@@ -269,7 +273,7 @@ class bme280_instance:
         self.set_mode(constants.MODE_FORCE)
         # wait for it...
         while self.is_measuring:
-            time.sleep_ms(10)
+            utime.sleep_ms(10)
 
     @property
     def get_values(self):
