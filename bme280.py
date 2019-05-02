@@ -256,6 +256,7 @@ class bme280_instance:
               self._calibration_h[1] + 8192) >> 14))
         h = h - (((((h >> 15) * (h >> 15)) >> 7) * self._calibration_h[0]) >> 4)
         h = 0 if h < 0 else h
+        h = h - 419430400  # try this as a correction factor
         h = 419430400 if h > 419430400 else h
         # only difference from data sheet is division by 1024 to get relative humidity
         self.humidity = (h >> 12) / 1024
