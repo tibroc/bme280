@@ -240,7 +240,8 @@ class bme280_instance:
             var1 = (self._calibration_p[8] * (p >> 13) * (p >> 13)) >> 25
             var2 = (self._calibration_p[7] * p) >> 19
             # only difference from data sheet is the division by 256 to get pascal
-            self.pressure = ((p + var1 + var2) >> 8) + (self._calibration_p[6] << 4) / 256
+            pressure = ((p + var1 + var2) >> 8) + (self._calibration_p[6] << 4)
+            self.pressure = pressure / 256
 
     def _compensate_humidity(self):
         h = self._t_fine - 76800
