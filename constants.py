@@ -10,13 +10,7 @@ https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280-DS002.
 
 
 """
-Pin definitions
-"""
-SDA = 21
-SCL = 22
-
-"""
-I2C adresses
+I2C adress of the sensor
 """
 BME_I2C_ADDR = 0x77
 
@@ -100,4 +94,3 @@ SPI3W_OFF = 0x00
 Additional constants
 """
 SEALEVELPRESSURE_HPA = 1013.25
-

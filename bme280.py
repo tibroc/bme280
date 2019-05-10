@@ -15,9 +15,9 @@ import constants
 
 
 class bme280_instance:
-    
-    def __init__(self, i2c_connection=None, bme_address=None):
-        self.i2c = i2c_connection if i2c_connection else self._init_i2c()
+
+    def __init__(self, i2c_connection, bme_address=None):
+        self.i2c = i2c_connection
         self.bme_i2c_addr = bme_address if bme_address else constants.BME_I2C_ADDR
         self.adc_pressure = None
         self.adc_temperature = None
@@ -43,11 +43,6 @@ class bme280_instance:
         print("Set auto-config.")
         self._read_calibration_data()
         print("Read calibration data.")
-    
-    def _init_i2c(self):
-        self.i2c = machine.I2C(scl=machine.Pin(constants.SCL, machine.Pin.OUT),
-                               sda=machine.Pin(constants.SDA, machine.Pin.OUT),
-                               freq=100000)
 
     def check_sensor(self):
         # check sensor id:
@@ -59,7 +54,7 @@ class bme280_instance:
 
     def reset_sensor(self):
         self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_RESET, bytearray([0xB6]))
-    
+
     def _read_calibration_data(self):
         calib00_25 = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CALIB00_25[0], constants.REG_CALIB00_25[1])
         calib26_41 = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CALIB26_41[0], constants.REG_CALIB26_41[1])
@@ -67,7 +62,7 @@ class bme280_instance:
         dig26_41 = unpack("<hBbhb", calib26_41)
         self._calibration_t = dig00_25[:3]
         self._calibration_p = dig00_25[3:12]
-        h4 = (dig26_41[2] * 16) + (dig26_41[3] & 0xF)  # additional unpacking 
+        h4 = (dig26_41[2] * 16) + (dig26_41[3] & 0xF)  # additional unpacking
         h5 = dig26_41[3] // 16
         self._calibration_h = (dig00_25[13], dig26_41[0], dig26_41[1], dig26_41[2], h4, h5)
 
@@ -76,7 +71,7 @@ class bme280_instance:
         ctrl_byte = unpack('<b', ctrl_byte)[0]
         out_value = (ctrl_byte & bit_mask) | value
         self.i2c.writeto_mem(self.bme_i2c_addr, register, bytearray([out_value]))
-    
+
     def _get_value(self, register, bit_mask):
         ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
         ctrl_byte = unpack('<b', ctrl_byte)[0]
@@ -99,7 +94,7 @@ class bme280_instance:
         if value in [constants.OS_T_16, 0xE0, 0xC0]:
             return 'x16', value
         return 'reset state', value
-        
+
     def set_press_oversampling(self, rate):
         self._set_value(rate, constants.REG_CTRL_MEAS, 0xE3)
 
@@ -247,7 +242,7 @@ class bme280_instance:
             var2 = (self._calibration_p[7] * p) >> 19
             # only difference from data sheet is the division by 256 to get pascal
             pressure = ((p + var1 + var2) >> 8) + (self._calibration_p[6] << 4)
-            self.pressure = pressure / 256  
+            self.pressure = pressure / 256
 
     def _compensate_humidity(self):
         h = self._t_fine - 76800
@@ -267,7 +262,7 @@ class bme280_instance:
         self._compensate_temperature()
         self._compensate_pressure()
         self._compensate_humidity()
-    
+
     def _auto_config(self):
         self.set_hum_oversampling(constants.OS_H_1)
         self.set_temp_oversampling(constants.OS_T_1)
@@ -283,7 +278,6 @@ class bme280_instance:
         self._auto_config()
         self.read_data()
         self.compensate_data()
-        return {'temperature_degc': self.temperature / 100, 
-                'pressure_hpa': self.pressure / 100, 
+        return {'temperature_degc': self.temperature / 100,
+                'pressure_hpa': self.pressure / 100,
                 'relative_humidity': self.humidity}
-
