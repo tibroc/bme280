@@ -12,7 +12,7 @@ https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280-DS002.
 """
 I2C adress of the sensor
 """
-BME_I2C_ADDR = 0x77
+BME_I2C_ADDR = 0x76
 
 """
 Memory register adresses
