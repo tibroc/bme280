@@ -64,7 +64,7 @@ class bme280_instance:
         self._calibration_p = dig00_25[3:12]
         h4 = (dig26_41[2] * 16) + (dig26_41[3] & 0xF)  # additional unpacking
         h5 = dig26_41[3] // 16
-        self._calibration_h = (dig00_25[13], dig26_41[0], dig26_41[1], dig26_41[2], h4, h5)
+        self._calibration_h = (dig00_25[13], dig26_41[0], dig26_41[1], h4, h5, calib26_41[6])
 
     def _set_value(self, value, register, bit_mask):
         ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, register, 1)
@@ -253,7 +253,6 @@ class bme280_instance:
               self._calibration_h[1] + 8192) >> 14))
         h = h - (((((h >> 15) * (h >> 15)) >> 7) * self._calibration_h[0]) >> 4)
         h = 0 if h < 0 else h
-        h = h - 419430400  # try this as a correction factor
         h = 419430400 if h > 419430400 else h
         # only difference from data sheet is division by 1024 to get relative humidity
         self.humidity = (h >> 12) / 1024
