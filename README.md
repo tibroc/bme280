@@ -1,7 +1,7 @@
 
 # MicroPython Interface to the Bosch BME280
 
-This is a (MicroPython)[https://micropython.org/] interface to configure and read out the (Bosch BME280)[https://www.bosch-sensortec.com/bst/products/all_products/bme280] humidity, pressure and temperature sensor. It is supposed to provide an API to the sensor's full functionality and be cross-functional between boards. It was tested on the (ESP32)[https://www.espressif.com/en/products/hardware/esp32/overview] and the (PyBoard v1.1)[https://store.micropython.org/product/PYBv1.1].
+This is a [MicroPython](https://micropython.org/) interface to configure and read out the [Bosch BME280](https://www.bosch-sensortec.com/bst/products/all_products/bme280) humidity, pressure and temperature sensor. It is supposed to provide an API to the sensor's full functionality and be cross-functional between boards. It was tested on the [ESP32](https://www.espressif.com/en/products/hardware/esp32/overview) and the [PyBoard v1.1](https://store.micropython.org/product/PYBv1.1).
 
 
 ## Hardware Set-Up
@@ -24,7 +24,7 @@ i2c = machine.I2C(scl=scl_pin, sda=sda_pin, freq=100000)
 
 ```
 
-### initialize sensor
+### Initialize Sensor
 
 ```python
 import bme280
