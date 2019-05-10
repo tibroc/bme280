@@ -8,13 +8,12 @@ It is largely a transcription of the information in the data sheet:
 https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280-DS002.pdf
 """
 
-import machine
 
 """
 Pin definitions
 """
-SDA = machine.Pin(21, machine.Pin.OUT)
-SCL = machine.Pin(22, machine.Pin.OUT)
+SDA = 21
+SCL = 22
 
 """
 I2C adresses

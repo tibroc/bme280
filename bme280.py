@@ -45,7 +45,9 @@ class bme280_instance:
         print("Read calibration data.")
     
     def _init_i2c(self):
-        self.i2c = machine.I2C(scl=constants.SCL, sda=constants.SDA, freq=100000)
+        self.i2c = machine.I2C(scl=machine.Pin(constants.SCL, machine.Pin.OUT),
+                               sda=machine.Pin(constants.SDA, machine.Pin.OUT),
+                               freq=100000)
 
     def check_sensor(self):
         # check sensor id:

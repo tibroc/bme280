@@ -9,6 +9,12 @@ from ustruct import unpack
 import constants
 import bme280
 
+
+constants.SDA = machine.Pin('X2', machine.Pin.OUT)
+constants.SCL = machine.Pin('X3', machine.Pin.OUT)
+constants.BME_I2C_ADDR = 0x76
+
+
 # init the i2c interface
 i2c = machine.I2C(scl=constants.SCL, sda=constants.SDA, freq=100000)
 
