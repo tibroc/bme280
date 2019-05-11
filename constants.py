@@ -1,8 +1,6 @@
 """
 BME280 constants
 
-Enums would be nice for most of these, but are not implemented in micropython.
-
 This file includes all constants and default configs of the sensor (e.g. pins, registers).
 It is largely a transcription of the information in the data sheet:
 https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280-DS002.pdf

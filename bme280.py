@@ -3,7 +3,7 @@ This file contains the implementation of the bme280 class that let's you configu
 the sensor and read-out the data.
 
 Sources that served as guidance during implementation:
-* https://github.com/robert-hh/BME280 (MIT License)
+* https://github.com/robert-hh/BME280
 * https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280-DS002.pdf
 
 """
@@ -25,7 +25,7 @@ class bme280_instance:
         self.pressure = None
         self.temperature = None
         self.humidity = None
-        self._calibration_t = None  # init with empty tuple!?
+        self._calibration_t = None
         self._calibration_p = None
         self._calibration_h = None
         self._t_fine = None
@@ -272,8 +272,7 @@ class bme280_instance:
         while self.is_measuring:
             utime.sleep_ms(10)
 
-    @property
-    def get_values(self):
+    def force_one_reading(self):
         self._auto_config()
         self.read_data()
         self.compensate_data()
