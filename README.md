@@ -1,11 +1,11 @@
 
 # MicroPython Interface to the Bosch BME280
 
-This is a [MicroPython](https://micropython.org/) interface to configure and read out the [Bosch BME280](https://www.bosch-sensortec.com/bst/products/all_products/bme280) humidity, pressure and temperature sensor. It is supposed to provide an API to the sensor's full functionality and be cross-functional between boards. It was tested on the [ESP32](https://www.espressif.com/en/products/hardware/esp32/overview) and the [PyBoard v1.1](https://store.micropython.org/product/PYBv1.1).
+This is a [MicroPython](https://micropython.org/) interface to configure and read out the [Bosch BME280](https://www.bosch-sensortec.com/bst/products/all_products/bme280) humidity, pressure and temperature sensor. It is supposed to provide an API to the sensor's full functionality and be cross-functional between boards. It was tested on the [ESP32](https://www.espressif.com/en/products/hardware/esp32/overview), the [ESP8266](https://www.espressif.com/en/products/hardware/esp-wroom-02/overview) and the [PyBoard v1.1](https://store.micropython.org/product/PYBv1.1).
 
 
 ## Hardware Set-Up
-Connect the `Vin` pin of the sensor to a 3.3V outlet on the board and the `GND` to ground. You can connect the `SDA` and `SCL` pins of the sensor's I2C-bus basically to any general purpose pin on your board of choice. Then configure your I2C in your MicroPython script as described below.
+Connect the `Vin` pin of the sensor to a 3.3V outlet on the board and the `GND` to ground. You can connect the `SDA` and `SCL` pins of the sensor's I2C-bus basically to any general purpose pin on your board of choice. Then configure your I2C in your MicroPython script as described below. For more info on the sensor and its functions have a look at the [datasheet](https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280-DS002.pdf).
 
 ## Usage
 
@@ -16,11 +16,14 @@ You first need to initialize a I2C-connection to your sensor. The sensor's defau
 import machine
 
 # configure the I2C-pins (change the ids according to your set-up)
-sda_pin = machine.Pin('X1', machine.Pin.OUT)
-scl_pin = machine.Pin('X2', machine.Pin.OUT)
+sda_pin = machine.Pin('x1', machine.Pin.OUT)
+scl_pin = machine.Pin('x2', machine.Pin.OUT)
 
 # init the i2c connection
 i2c = machine.I2C(scl=scl_pin, sda=sda_pin, freq=100000)
+
+# see if your sensor is there
+i2c.scan()
 
 ```
 
