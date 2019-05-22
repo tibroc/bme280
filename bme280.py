@@ -249,11 +249,11 @@ class bme280_instance:
         t_fine = self.__t_fine__(adc_temperature)
 
         # calculate values from the raw data
-        preasure = self._calculate_pressure(adc_pressure, t_fine)
+        pressure = self._calculate_pressure(adc_pressure, t_fine)
         temperature = self._calculate_temperature(adc_temperature, t_fine)
         humidity = self._calculate_humidity(adc_humidity, t_fine)
 
-        return (preasure, temperature, humidity)
+        return (pressure, temperature, humidity)
 
     def _calculate_temperature(self, adc_temperature, t_fine):
         return ((t_fine * 5 + 128) >> 8) / 100
