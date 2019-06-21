@@ -77,9 +77,8 @@ class bme280_instance:
 
     def _get_value(self, register, bit_mask):
         ctrl_byte = self.i2c.readfrom_mem(
-            self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
+            self.bme_i2c_addr, register, 1)
         ctrl_byte = unpack('<b', ctrl_byte)[0]
-        bit_mask = 0x03
         return ctrl_byte & bit_mask
 
     def set_temp_oversampling(self, rate):
@@ -250,12 +249,13 @@ class bme280_instance:
 
         # calculate values from the raw data
         pressure = self._calculate_pressure(adc_pressure, t_fine)
-        temperature = self._calculate_temperature(adc_temperature, t_fine)
+        temperature = self._calculate_temperature(t_fine)
         humidity = self._calculate_humidity(adc_humidity, t_fine)
 
-        return (pressure, temperature, humidity)
+        return pressure, temperature, humidity
 
-    def _calculate_temperature(self, adc_temperature, t_fine):
+    @staticmethod
+    def _calculate_temperature(t_fine):
         return ((t_fine * 5 + 128) >> 8) / 100
 
     def _calculate_pressure(self, adc_pressure, t_fine):
