@@ -1,13 +1,12 @@
 """
-This file contains the implementation of the bme280 class that let's you configure
-the sensor and read-out the data.
+This file contains the implementation of the bme280 class that let's you
+configure the sensor and read-out the data.
 
 Sources that served as guidance during implementation:
 * https://github.com/robert-hh/BME280
 * https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280-DS002.pdf
 
 """
-import machine
 from ustruct import unpack
 import utime
 
@@ -18,17 +17,13 @@ class bme280_instance:
 
     def __init__(self, i2c_connection, bme_address=None):
         self.i2c = i2c_connection
-        self.bme_i2c_addr = bme_address if bme_address else constants.BME_I2C_ADDR
-        self.adc_pressure = None
-        self.adc_temperature = None
-        self.adc_humidity = None
-        self.pressure = None
-        self.temperature = None
-        self.humidity = None
+        if bme_address:
+            self.bme_i2c_addr = bme_address
+        else:
+            self.bme_i2c_addr = constants.BME_I2C_ADDR
         self._calibration_t = None
         self._calibration_p = None
         self._calibration_h = None
-        self._t_fine = None
         self._raw_data_buffer = bytearray(8)
         self._start_up()
 
@@ -49,31 +44,40 @@ class bme280_instance:
         chip = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_ID, 2)
         chip_id = unpack("<h", chip)[0]
         if chip_id != 0x60:
-            raise OSError("The i2c device does not return the correct chip id: {}".format(chip_id))
+            raise OSError(
+                "The i2c device does not return the correct chip id: {}".format(chip_id))
         print("Found a BME280 at {}.".format(self.bme_i2c_addr))
 
     def reset_sensor(self):
-        self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_RESET, bytearray([0xB6]))
+        self.i2c.writeto_mem(
+            self.bme_i2c_addr, constants.REG_RESET, bytearray([0xB6]))
 
     def _read_calibration_data(self):
-        calib00_25 = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CALIB00_25[0], constants.REG_CALIB00_25[1])
-        calib26_41 = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CALIB26_41[0], constants.REG_CALIB26_41[1])
+        calib00_25 = self.i2c.readfrom_mem(
+            self.bme_i2c_addr, constants.REG_CALIB00_25[0],
+            constants.REG_CALIB00_25[1])
+        calib26_41 = self.i2c.readfrom_mem(
+            self.bme_i2c_addr, constants.REG_CALIB26_41[0],
+            constants.REG_CALIB26_41[1])
         dig00_25 = unpack("<HhhHhhhhhhhhBB", calib00_25)
         dig26_41 = unpack("<hBbhb", calib26_41)
         self._calibration_t = dig00_25[:3]
         self._calibration_p = dig00_25[3:12]
         h4 = (dig26_41[2] * 16) + (dig26_41[3] & 0xF)  # additional unpacking
         h5 = dig26_41[3] // 16
-        self._calibration_h = (dig00_25[13], dig26_41[0], dig26_41[1], h4, h5, calib26_41[6])
+        self._calibration_h = (
+            dig00_25[13], dig26_41[0], dig26_41[1], h4, h5, calib26_41[6])
 
     def _set_value(self, value, register, bit_mask):
         ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, register, 1)
         ctrl_byte = unpack('<b', ctrl_byte)[0]
         out_value = (ctrl_byte & bit_mask) | value
-        self.i2c.writeto_mem(self.bme_i2c_addr, register, bytearray([out_value]))
+        self.i2c.writeto_mem(self.bme_i2c_addr, register,
+                             bytearray([out_value]))
 
     def _get_value(self, register, bit_mask):
-        ctrl_byte = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
+        ctrl_byte = self.i2c.readfrom_mem(
+            self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
         ctrl_byte = unpack('<b', ctrl_byte)[0]
         bit_mask = 0x03
         return ctrl_byte & bit_mask
@@ -114,10 +118,13 @@ class bme280_instance:
 
     def set_hum_oversampling(self, rate):
         self._set_value(rate, constants.REG_CTRL_HUM, 0xF8)
-        # it is necessary to do a write operation to ctrl_meas for the changes in ctrl_hum to take place
-        ctrl_meas = self.i2c.readfrom_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
+        # it is necessary to do a write operation to ctrl_meas for the changes
+        # in ctrl_hum to take place
+        ctrl_meas = self.i2c.readfrom_mem(
+            self.bme_i2c_addr, constants.REG_CTRL_MEAS, 1)
         ctrl_meas = unpack('<b', ctrl_meas)[0]
-        self.i2c.writeto_mem(self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([ctrl_meas]))
+        self.i2c.writeto_mem(
+            self.bme_i2c_addr, constants.REG_CTRL_MEAS, bytearray([ctrl_meas]))
 
     def get_hum_oversampling(self):
         value = self._get_value(constants.REG_CTRL_HUM, 0x07)
@@ -207,26 +214,52 @@ class bme280_instance:
             return True
         return False
 
-    def read_data(self):
+    def __to_20bit__(self, buf):
+        # ((msb << 16) | (lsb << 8) | xlsb) >> 4
+        return ((buf[0] << 16) | (buf[1] << 8) | buf[2]) >> 4
+
+    def __to_16bit__(self, buf):
+        # (msb << 8) | lsb
+        return (buf[0] << 8) | buf[1]
+
+    def __t_fine__(self, adc_temperature):
+        """Calculate the fine resolution temperature value"""
+        var1 = (((adc_temperature >> 3) -
+                 (self._calibration_t[0] << 1)) * self._calibration_t[1]) >> 11
+        var2 = (((
+            ((adc_temperature >> 4) - self._calibration_t[0]) *
+            ((adc_temperature >> 4) - self._calibration_t[0])) >> 12)
+            * self._calibration_t[2]) >> 14
+        return var1 + var2
+
+    def get_data(self):
         # single burst read-out from sensor:
-        self.i2c.readfrom_mem_into(self.bme_i2c_addr, 0xF7, self._raw_data_buffer)
-        # unpack data - pressure + temperature are unsigned 20-bit and humidity is unsigned 16-bit)
-        # pressure(0xF7): ((msb << 16) | (lsb << 8) | xlsb) >> 4
-        self.adc_pressure = ((self._raw_data_buffer[0] << 16) | (self._raw_data_buffer[1] << 8) | self._raw_data_buffer[2]) >> 4
-        # temperature(0xFA): ((msb << 16) | (lsb << 8) | xlsb) >> 4
-        self.adc_temperature = ((self._raw_data_buffer[3] << 16) | (self._raw_data_buffer[4] << 8) | self._raw_data_buffer[5]) >> 4
-        # humidity(0xFD): (msb << 8) | lsb
-        self.adc_humidity = (self._raw_data_buffer[6] << 8) | self._raw_data_buffer[7]
+        self.i2c.readfrom_mem_into(
+            self.bme_i2c_addr, 0xF7, self._raw_data_buffer)
+        # unpack data - pressure + temperature are unsigned 20-bit
+        # and humidity is unsigned 16-bit)
+        # pressure(0xF7)
+        adc_pressure = self.__to_20bit__(self._raw_data_buffer[0:3])
+        # temperature(0xFA)
+        adc_temperature = self.__to_20bit__(self._raw_data_buffer[3:6])
+        # humidity(0xFD)
+        adc_humidity = self.__to_16bit__(self._raw_data_buffer[6:8])
 
-    def _compensate_temperature(self):
-        var1 = (((self.adc_temperature >> 3) - (self._calibration_t[0] << 1)) * self._calibration_t[1]) >> 11
-        var2 = ((((((self.adc_temperature >> 4) - self._calibration_t[0]) *
-                   ((self.adc_temperature >> 4) - self._calibration_t[0]))) >> 12) * self._calibration_t[2]) >> 14
-        self._t_fine = var1 + var2
-        self.temperature = (self._t_fine * 5 + 128) >> 8
+        # temperature factor
+        t_fine = self.__t_fine__(adc_temperature)
 
-    def _compensate_pressure(self):
-        var1 = self._t_fine - 128000
+        # calculate values from the raw data
+        pressure = self._calculate_pressure(adc_pressure, t_fine)
+        temperature = self._calculate_temperature(adc_temperature, t_fine)
+        humidity = self._calculate_humidity(adc_humidity, t_fine)
+
+        return (pressure, temperature, humidity)
+
+    def _calculate_temperature(self, adc_temperature, t_fine):
+        return ((t_fine * 5 + 128) >> 8) / 100
+
+    def _calculate_pressure(self, adc_pressure, t_fine):
+        var1 = t_fine - 128000
         var2 = var1 * var1 * self._calibration_p[5]
         var2 = var2 + ((var1 * self._calibration_p[4]) << 17)
         var2 = var2 + (self._calibration_p[3] << 35)
@@ -234,33 +267,32 @@ class bme280_instance:
                 ((var1 * self._calibration_p[1]) << 12))
         var1 = (((1 << 47) + var1) * self._calibration_p[0]) >> 33
         if var1 == 0:
-            self.pressure = 0  # avoid exception caused by division by zero
+            return 0  # avoid exception caused by division by zero
         else:
-            p = 1048576 - self.adc_pressure
+            p = 1048576 - adc_pressure
             p = (((p << 31) - var2) * 3125) // var1
             var1 = (self._calibration_p[8] * (p >> 13) * (p >> 13)) >> 25
             var2 = (self._calibration_p[7] * p) >> 19
-            # only difference from data sheet is the division by 256 to get pascal
+            # only difference from data sheet is the division by 256 to get
+            # pascal
             pressure = ((p + var1 + var2) >> 8) + (self._calibration_p[6] << 4)
-            self.pressure = pressure / 256
+            return (pressure >> 8) / 100
 
-    def _compensate_humidity(self):
-        h = self._t_fine - 76800
-        h = (((((self.adc_humidity << 14) - (self._calibration_h[3] << 20) -
+    def _calculate_humidity(self, adc_humidity, t_fine):
+        h = t_fine - 76800
+        h = (((((adc_humidity << 14) - (self._calibration_h[3] << 20) -
                 (self._calibration_h[4] * h)) + 16384) >> 15) *
              (((((((h * self._calibration_h[5]) >> 10) *
-                (((h * self._calibration_h[2]) >> 11) + 32768)) >> 10) + 2097152) *
-              self._calibration_h[1] + 8192) >> 14))
-        h = h - (((((h >> 15) * (h >> 15)) >> 7) * self._calibration_h[0]) >> 4)
+                  (((h * self._calibration_h[2]) >> 11) + 32768)) >> 10)
+                + 2097152) *
+               self._calibration_h[1] + 8192) >> 14))
+        h = h - (((((h >> 15) * (h >> 15)) >> 7)
+                  * self._calibration_h[0]) >> 4)
         h = 0 if h < 0 else h
         h = 419430400 if h > 419430400 else h
-        # only difference from data sheet is division by 1024 to get relative humidity
-        self.humidity = (h >> 12) / 1024
-
-    def compensate_data(self):
-        self._compensate_temperature()
-        self._compensate_pressure()
-        self._compensate_humidity()
+        # only difference from data sheet is division by 1024 to get relative
+        # humidity
+        return (h >> 12) / 1024
 
     def _auto_config(self):
         self.set_hum_oversampling(constants.OS_H_1)
@@ -271,11 +303,3 @@ class bme280_instance:
         # wait for it...
         while self.is_measuring:
             utime.sleep_ms(10)
-
-    def force_one_reading(self):
-        self._auto_config()
-        self.read_data()
-        self.compensate_data()
-        return {'temperature_degc': self.temperature / 100,
-                'pressure_hpa': self.pressure / 100,
-                'relative_humidity': self.humidity}
